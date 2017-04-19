@@ -35,8 +35,8 @@ Because I could not locate a part to represent the SSD1306 OLED Display, I creat
 Uses [c0z3n/cherrymx-eagle](https://github.com/c0z3n/cherrymx-eagle/) library as well.
 
 ## Usage
-Each bit is typed out from the least significant bit to the most significant bit (left to right). After all 8 bits have
-been entered, it will type out the ASCII value equivalent of that binary valiue. The Pro Micro has native USB support,
+Each byte can either be typed from most significant bit to least significant bit (left to right), or least significant bit to most significant bit (right to left). This is set before uploading to the board.
+After all 8 bits have been entered, it will type out the ASCII value equivalent of that binary valiue. The Pro Micro has native USB support,
 which means it acts just like any other keyboard.
 
 If both keys are held down, the keyboard will switch to "1/0 mode" / "single button press mode" (I'm bad at names).
