@@ -10,6 +10,11 @@ Binary Keyboard for Arduino Pro Micro
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+// flag for reading/entering right to left or left to right
+// true = right to left (least significant bit to most)
+// false = left to right (most significant bit to least)
+#define USE_RIGHT_TO_LEFT false
+
 // button pins
 #define BUTTON_ZERO 8
 #define BUTTON_ONE 9
@@ -49,7 +54,7 @@ char lastPrinted = ' ';
 
 // keystroke value
 byte keyStroke = 0; //B01010101;
-byte index = 0;
+int index = 0;
 
 bool buttonStateZero, buttonStateOne;
 // PWM values for each led
@@ -57,6 +62,16 @@ int ledZero, ledOne;
 int ledDecayRate = 10;
 
 void setup() {
+
+	if (USE_RIGHT_TO_LEFT)
+	{
+		index = 0;
+	}
+	else
+	{
+		index = 7;
+	}
+
 	//Serial.begin(9600);
 	Keyboard.begin();
 
@@ -77,7 +92,7 @@ void setup() {
 	display.clearDisplay();
 	display.setCursor(0, 0);
 	display.setTextColor(WHITE);
-	display.print("Binary Keyboard!\n by Chris Johnston");
+	display.print("Binary Keyboard!\ngithub.com/\n     Chris-Johnston");
 	display.display();
 	delay(1000);
 	// wipes the screen away with an effect
@@ -95,7 +110,7 @@ void setup() {
 			char c = ((i + j) % 2) ? '1' : '0';
 			if (i == 2 && j == 2)
 			{
-				c = '2'; // wonder if anyone will notice?
+				c = '2'; // wonder if anyone will notice? EDIT: Yes, people did. LOL
 				/*
 				* Bender:	Whoa, what an awful dream. Ones and zeroes everywhere. And I thought I saw a two.
 				* Fry:		It was just a dream Bender. There's no such thing as two.
@@ -115,16 +130,40 @@ void setup() {
 // deals with a keypress
 void keypress(int val)
 {
-	// keep showing last value until next keypress
-	if (index == 0) { keyStroke = 0; }
-	keyStroke += val << index;
-	index++;
-	if (index > 7)
+
+	if (USE_RIGHT_TO_LEFT)
 	{
-		//Keyboard.write((char)keyStroke);
-		sendVal((char)keyStroke);
-		index = 0;
+		// clear the keystroke only when starting to type once again
+		if (index == 0) { keyStroke = 0; }
+
+		keyStroke += val << index;
+		// index increments from 0 -> 7 when RTL
+		index++;
+
+		if (index > 7)
+		{
+			sendVal((char)keyStroke);
+			index = 0;
+		}
 	}
+	else
+	{
+		// clear the keystroke only when starting to type once again
+		if (index == 7) { keyStroke = 0; }
+
+		keyStroke += (val << index);
+		
+		// index decrements from 0->7 when LTR
+		index--;
+
+		if (index < 0)
+		{
+			sendVal((char)keyStroke);
+			index = 7;
+		}
+	}
+
+	
 }
 
 void sendVal(char val)
