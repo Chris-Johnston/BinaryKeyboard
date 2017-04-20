@@ -8,14 +8,38 @@ A two-button backlit mechanical keyboard that types ASCII values, one bit at a t
 <img src="Images/topdown.jpg" alt="Top Down Photo" Width="300" />
 
 ## GIFS
-<img src="https://thumbs.gfycat.com/FixedTangibleBluebottle-size_restricted.gif" alt="Boot Up Sequence"/>
-<img src="https://thumbs.gfycat.com/FaithfulThoseCrossbill-size_restricted.gif" alt="Normal Use" />
-<img src="https://thumbs.gfycat.com/LawfulSafeIndianrockpython-size_restricted.gif" alt="Switching Modes" />
-<img src="https://thumbs.gfycat.com/InferiorShortIchidna-size_restricted.gif" alt="Fancy Backlighting" />
-<img src="https://thumbs.gfycat.com/AcclaimedAdorableJaguar-size_restricted.gif" alt="Yet another GIF" />
+
+<img src="https://thumbs.gfycat.com/ShamefulFlashyCuttlefish-size_restricted.gif" alt="Mode switching and typing backspace"/>
+
+Typing the backspace character, followed by switching between modes.
+
+<img src="https://thumbs.gfycat.com/LimpAnimatedAphid-size_restricted.gif" alt="Demonstrating left to right input"/>
+
+Demonstrating left to right input.
+
+<img src="https://thumbs.gfycat.com/RashGrizzledAardwolf-size_restricted.gif" alt="Sample input using phone"/>
+
+Demonstrating compatibility with USB OTG.
+
+<img src="https://thumbs.gfycat.com/FixedTangibleBluebottle-size_restricted.gif" alt="Boot up sequence"/>
+
+Boot up sequence.
+
+<img src="https://thumbs.gfycat.com/FaithfulThoseCrossbill-size_restricted.gif" alt="Normal use" />
+
+Demonstrating right to left input.
+
+<img src="https://thumbs.gfycat.com/LawfulSafeIndianrockpython-size_restricted.gif" alt="Switching modes" />
+
+Demonstrating switching between typing modes.
+
+<img src="https://thumbs.gfycat.com/InferiorShortIchidna-size_restricted.gif" alt="Fancy backlighting" />
+
+Close-up of the blue led backlit keys.
 
 # Technical Info
 
+## Schematic
 <img src="Schematic_small.png" alt="Image of Schematic" Width="500" />
 
 ## Components
@@ -45,8 +69,8 @@ In this mode, each key will represent a '1' or a '0' just like on a traditional 
 ## Arduino Problems
 Initially I was going to use a [DigiStump](http://digistump.com/products/1) board for this, but I found issues with not having enough memory to work with after importing libraries and not enough I/O. I'm using an Arduino Pro Micro knockoff. The reason that there is electrical tape covering it is because I found that shorting the contacts with a finger would cause it to stop working. I'm still not really sure why.
 
-## Contribution and Modifications
+# Contribution and Modifications
 Please feel free to fork this project for your own purposes.
 
-## Acknowledgments
+# Acknowledgments
 Special thanks goes to everyone in the UWB Makerspace that helped make this possible.
