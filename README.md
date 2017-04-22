@@ -17,6 +17,10 @@ Typing the backspace character, followed by switching between modes.
 
 Demonstrating left to right input.
 
+<img src="https://thumbs.gfycat.com/ShamelessHandmadeDuckling-size_restricted.gif" alt="Showing off animations in updated alternate mode"/>
+
+New animations added to '1/0' mode. (Still working on a name for that).
+
 <img src="https://thumbs.gfycat.com/RashGrizzledAardwolf-size_restricted.gif" alt="Sample input using phone"/>
 
 Demonstrating compatibility with USB OTG.

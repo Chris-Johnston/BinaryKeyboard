@@ -10,6 +10,9 @@ Binary Keyboard for Arduino Pro Micro
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+// pixel art for 1/0 mode w/ animations
+#include "PixelArt.h"
+
 // flag for reading/entering right to left or left to right
 // true = right to left (least significant bit to most)
 // false = left to right (most significant bit to least)
@@ -28,8 +31,9 @@ Binary Keyboard for Arduino Pro Micro
 #define Y_RESOLUTION 32
 
 // constant characters for zero and one (for single button press mode)
-#define CHAR_ZERO '0'
-#define CHAR_ONE '1'
+// hey osu players, you should look at these, do X for ZERO, Z for ONE
+#define CHAR_ZERO '0' // right
+#define CHAR_ONE '1' // left
 
 // set up display
 #define OLED_RESET 4
@@ -40,14 +44,19 @@ unsigned long debounceTimer = 0;
 unsigned int debounceDelay = 5;
 // switch mode delay
 unsigned long switchModeTimerStartPress = 0;
-unsigned int switchModeDelay = 1000;
+// increased switch mode delay
+unsigned int switchModeDelay = 2000;
 // display last timer
 unsigned long lastPrintTime = 0;
-unsigned int showDelay = 500;
+// this should be long enough so that people can tell what it says
+unsigned int showDelay = 1500; 
 // last switch time
 unsigned long switchTime = 0;
 
-// flag for what mode it will run in
+// used for one/zero mode timing
+unsigned long timerOne = 0, timerZero = 0;
+
+// flag for what mode it will start in
 bool mode = false; // false = binary mode, true = single button press mode
 
 char lastPrinted = ' ';
@@ -176,7 +185,7 @@ void sendVal(char val)
 void loop() {
 	bool previousZero = buttonStateZero;
 	bool previousOne = buttonStateOne;
-	
+
 	buttonStateOne = digitalRead(BUTTON_ONE);
 	buttonStateZero = digitalRead(BUTTON_ZERO);
 
@@ -188,23 +197,25 @@ void loop() {
 	ledOne = max(0, ledOne - ledDecayRate);
 
 	display.clearDisplay();
-	
+
 	// do drawing stuff
 	if (mode)
 	{
 		// single button press mode
 		// draw black rectangle behind text    
-		display.setTextSize(2);
-		display.setTextColor(WHITE, BLACK);
-		display.setCursor(61, 8); // roughly centered text
-		display.print(lastPrinted);
+		//display.setTextSize(2);
+		//display.setTextColor(WHITE, BLACK);
+		//display.setCursor(61, 8); // roughly centered text
+		//display.print(lastPrinted);
 
-		if (((millis() - switchTime) < switchModeDelay))
+
+		// removing this for now, it gets in the way of the bitmaps
+		/*if (((millis() - switchTime) < switchModeDelay))
 		{
 			display.setCursor(0, 0);
 			display.setTextSize(1);
 			display.print("Press & Hold Both To Return");
-		}
+		}*/
 	}
 	else
 	{
@@ -244,7 +255,7 @@ void loop() {
 		{
 			switchModeTimerStartPress = millis();
 		}
-		else if( ((millis() - switchModeTimerStartPress) > switchModeDelay) && previousOne && previousZero)
+		else if (((millis() - switchModeTimerStartPress) > switchModeDelay) && previousOne && previousZero)
 		{
 			switchModeTimerStartPress = millis();
 			mode = !mode;
@@ -255,52 +266,119 @@ void loop() {
 		int width = map(millis() - switchModeTimerStartPress, 0, switchModeDelay, 0, 128);
 
 		// draw a 'progress bar' indicating when this will switch over
-		display.drawRect(0, 30, width, 2, WHITE);		
+		display.drawRect(0, 30, width, 2, WHITE);
 	}
 	else
 	{
 		switchModeTimerStartPress = 0;
 	}
-	display.display();
-	// debounce
 	
-	if ((millis() - debounceTimer) > debounceDelay)
+	// in single button press mode, ignore the debounce timers
+	if (mode)
 	{
-		// zero pressed
-		if (buttonStateZero && !buttonStateOne && !previousZero )
+		if (buttonStateOne)
 		{
-			// if mode true, single button press
-			if (mode)
+			//display.drawRect(1, 1, 62, 30, WHITE);
+			Keyboard.press(CHAR_ONE);
+		}
+		else
+		{
+			timerOne = millis();
+			Keyboard.release(CHAR_ONE);
+		}
+
+		// do animation for button one (left)
+		if (!buttonStateOne)
+		{
+			display.drawChar(TEXT_X_1, TEXT_Y_0, CHAR_ONE, WHITE, BLACK, 2);
+			display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_0, ART_WIDTH, ART_HEIGHT, WHITE);
+		}
+		else
+		{
+			int v = (millis() - timerOne);// / FRAME_DELAY_MS;
+			if (v <= FRAME_DELAY_MS * 1)
 			{
-				sendVal(CHAR_ZERO);
+				display.drawChar(TEXT_X_1, TEXT_Y_1, CHAR_ONE, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_1, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+			else if (v <= FRAME_DELAY_MS * 2)
+			{
+				display.drawChar(TEXT_X_1, TEXT_Y_2, CHAR_ONE, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_2, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+			else if (v <= FRAME_DELAY_MS * 3)
+			{
+				display.drawChar(TEXT_X_1, TEXT_Y_3, CHAR_ONE, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_3, ART_WIDTH, ART_HEIGHT, WHITE);
 			}
 			else
+			{
+				display.drawChar(TEXT_X_1, TEXT_Y_4, CHAR_ONE, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+		}
+		
+		if (buttonStateZero)
+		{
+			Keyboard.press(CHAR_ZERO);
+		}
+		else
+		{
+			timerZero = millis();
+			Keyboard.release(CHAR_ZERO);
+		}
+
+		// do animation for button zero (right)
+		if (!buttonStateZero)
+		{
+			display.drawChar(TEXT_X_2, TEXT_Y_0, CHAR_ZERO, WHITE, BLACK, 2);
+			display.drawBitmap(KEY_X_1, KEY_Y_0, FRAME_0, ART_WIDTH, ART_HEIGHT, WHITE);
+		}
+		else
+		{
+			int v = (millis() - timerZero);// / FRAME_DELAY_MS;
+			if (v <= FRAME_DELAY_MS * 1)
+			{
+				display.drawChar(TEXT_X_2, TEXT_Y_1, CHAR_ZERO, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_1, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+			else if (v <= FRAME_DELAY_MS * 2)
+			{
+				display.drawChar(TEXT_X_2, TEXT_Y_2, CHAR_ZERO, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_2, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+			else if (v <= FRAME_DELAY_MS * 3)
+			{
+				display.drawChar(TEXT_X_2, TEXT_Y_3, CHAR_ZERO, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_3, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+			else
+			{
+				display.drawChar(TEXT_X_2, TEXT_Y_4, CHAR_ZERO, WHITE, BLACK, 2);
+				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
+			}
+		}
+
+	}
+	else // in normal binary keyboard mode
+	{
+		// debounce
+		if ((millis() - debounceTimer) > debounceDelay)
+		{
+			// zero pressed
+			if (buttonStateZero && !buttonStateOne && !previousZero)
 			{
 				keypress(0);
+				debounceTimer = millis();
 			}
-			debounceTimer = millis();
-		}
-		// one pressed
-		else if (!buttonStateZero && buttonStateOne && !previousOne )
-		{
-			// if mode true, single button press
-			if (mode)
-			{
-				sendVal(CHAR_ONE);
-			}
-			else
+			// one pressed
+			else if (!buttonStateZero && buttonStateOne && !previousOne)
 			{
 				keypress(1);
+				debounceTimer = millis();
 			}
-			debounceTimer = millis();
 		}
-		//// both pressed
-		//else if (buttonStateZero && buttonStateOne)
-		//{	
-		//	// toggle state
-		//	mode = !mode;
-		//	lastPrinted = '0';
-		//	debounceTimer = millis();
-		//}
 	}
+
+	display.display();	
 }
