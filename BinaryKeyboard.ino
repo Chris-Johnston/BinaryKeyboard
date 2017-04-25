@@ -49,7 +49,7 @@ unsigned int switchModeDelay = 2000;
 // display last timer
 unsigned long lastPrintTime = 0;
 // this should be long enough so that people can tell what it says
-unsigned int showDelay = 1500; 
+unsigned int showDelay = 1500;
 // last switch time
 unsigned long switchTime = 0;
 
@@ -95,7 +95,7 @@ void setup() {
 	// display
 	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 	// set screen rotation
-	display.setRotation(SCREEN_ROTATION);  
+	display.setRotation(SCREEN_ROTATION);
 
 	// do some fancy screen stuff on boot
 	display.clearDisplay();
@@ -161,7 +161,7 @@ void keypress(int val)
 		if (index == 7) { keyStroke = 0; }
 
 		keyStroke += (val << index);
-		
+
 		// index decrements from 0->7 when LTR
 		index--;
 
@@ -172,7 +172,7 @@ void keypress(int val)
 		}
 	}
 
-	
+
 }
 
 void sendVal(char val)
@@ -202,7 +202,7 @@ void loop() {
 	if (mode)
 	{
 		// single button press mode
-		// draw black rectangle behind text    
+		// draw black rectangle behind text
 		//display.setTextSize(2);
 		//display.setTextColor(WHITE, BLACK);
 		//display.setCursor(61, 8); // roughly centered text
@@ -272,7 +272,7 @@ void loop() {
 	{
 		switchModeTimerStartPress = 0;
 	}
-	
+
 	// in single button press mode, ignore the debounce timers
 	if (mode)
 	{
@@ -317,7 +317,7 @@ void loop() {
 				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
 			}
 		}
-		
+
 		if (buttonStateZero)
 		{
 			Keyboard.press(CHAR_ZERO);
@@ -380,5 +380,5 @@ void loop() {
 		}
 	}
 
-	display.display();	
+	display.display();
 }
