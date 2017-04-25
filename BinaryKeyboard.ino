@@ -177,9 +177,15 @@ void keypress(int val)
 
 void sendVal(char val)
 {
-	Keyboard.write(val);
-	lastPrintTime = millis();
-	lastPrinted = val;
+    if (val >= 32) {
+        Keyboard.write(val);
+    } else {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(val + 96);
+        Keyboard.releaseAll();
+    }
+    lastPrintTime = millis();
+    lastPrinted = val;
 }
 
 void loop() {
