@@ -1,1 +1,3 @@
 Eagle/* linguist-vendored=true
+core.autocrlf = true
+*	text=auto
