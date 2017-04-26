@@ -1,3 +1,7 @@
 Eagle/* linguist-vendored=true
-core.autocrlf = true
-*	text=auto
+* 	text=auto
+*.ino 	text
+*.h 	text
+*.png	binary
+# don't bother with messing with line endings in that directory
+Eagle/* binary
