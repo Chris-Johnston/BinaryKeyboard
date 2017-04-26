@@ -79,3 +79,5 @@ Please feel free to fork this project for your own purposes.
 
 # Acknowledgments
 Special thanks goes to everyone in the UWB Makerspace that helped make this possible.
+
+Pixel art for screen animations by [@Omrii_](https://twitter.com/omrii_) https://github.com/OmriN7.
