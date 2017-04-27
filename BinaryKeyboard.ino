@@ -203,6 +203,12 @@ void sendVal(char val)
     lastPrinted = val;
 }
 
+void dispCtrlChar(char val)
+{
+    display.print('^');
+    display.print((char)(val + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
+}
+
 void loop() {
 	bool previousZero = buttonStateZero;
 	bool previousOne = buttonStateOne;
@@ -245,29 +251,34 @@ void loop() {
 			display.setCursor(0, 0);
 			display.setTextSize(1);
 			display.print("Last: ");
-            if (! HID_MODE && lastPrinted > 0 && lastPrinted < 32)
+            if (lastPrinted > 0 && lastPrinted < 32)
             {
-                display.print('^');
-                display.print((char)(lastPrinted + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
-
+                if (HID_MODE)
+                {
+                    switch (lastPrinted)
+                    {
+                        case HID_BS:
+                            display.print(HID_BS_STRING);
+                            break;
+                        case HID_TAB:
+                            display.print(HID_TAB_STRING);
+                            break;
+                        case HID_ENTER:
+                            display.print(HID_ENTER_STRING);
+                            break;
+                        default:
+                            dispCtrlChar(lastPrinted);
+                            break;
+                    }
+                }
+                else
+                {
+                    dispCtrlChar(lastPrinted);
+                }
             }
             else
             {
-                switch (lastPrinted)
-                {
-                    case HID_BS:
-                        display.print(HID_BS_STRING);
-                        break;
-                    case HID_TAB:
-                        display.print(HID_TAB_STRING);
-                        break;
-                    case HID_ENTER:
-                        display.print(HID_ENTER_STRING);
-                        break;
-                    default:
-                        display.print(lastPrinted);
-                        break;
-                }
+                display.print(lastPrinted);
             }
         }
 
