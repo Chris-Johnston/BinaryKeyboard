@@ -18,6 +18,21 @@ Binary Keyboard for Arduino Pro Micro
 // false = left to right (most significant bit to least)
 #define USE_RIGHT_TO_LEFT false
 
+// flag for outputting chars in HID keyboard mode or pure ctrl char mode (pure ASCII)
+// true = HID keyboard - outputs keyboard codes for Backspace (8), Tab (9) and Enter (10), otherwise ctrl chars as below
+// false = Ctrl char ASCII - outputs ctrl char corresponding to byte value entered (BS == Ctrl-H, Tab == Ctrl-I, Enter == Ctrl-J, etc.)
+#define HID_MODE true
+
+// These are the indices into the _asciimap array defined in Arduino Keyboard.cpp
+#define HID_BS 0x08
+#define HID_TAB 0x09
+#define HID_ENTER 0x0A
+
+// Strings to display when in HID mode
+#define HID_BS_STRING "BS"
+#define HID_TAB_STRING "Tab"
+#define HID_ENTER_STRING "Enter"
+
 // button pins
 #define BUTTON_ZERO 8
 #define BUTTON_ONE 9
@@ -177,7 +192,7 @@ void keypress(int val)
 
 void sendVal(char val)
 {
-    if (val >= 32) {
+    if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER)) {
         Keyboard.write(val);
     } else {
         Keyboard.press(KEY_LEFT_CTRL);
@@ -230,7 +245,7 @@ void loop() {
 			display.setCursor(0, 0);
 			display.setTextSize(1);
 			display.print("Last: ");
-            if (lastPrinted > 0 && lastPrinted < 32)
+            if (! HID_MODE && lastPrinted > 0 && lastPrinted < 32)
             {
                 display.print('^');
                 display.print((char)(lastPrinted + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
@@ -238,7 +253,21 @@ void loop() {
             }
             else
             {
-                display.print(lastPrinted);
+                switch (lastPrinted)
+                {
+                    case HID_BS:
+                        display.print(HID_BS_STRING);
+                        break;
+                    case HID_TAB:
+                        display.print(HID_TAB_STRING);
+                        break;
+                    case HID_ENTER:
+                        display.print(HID_ENTER_STRING);
+                        break;
+                    default:
+                        display.print(lastPrinted);
+                        break;
+                }
             }
         }
 
