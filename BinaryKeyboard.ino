@@ -230,8 +230,17 @@ void loop() {
 			display.setCursor(0, 0);
 			display.setTextSize(1);
 			display.print("Last: ");
-			display.print(lastPrinted);
-		}
+            if (lastPrinted > 0 && lastPrinted < 32)
+            {
+                display.print('^');
+                display.print((char)(lastPrinted + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
+
+            }
+            else
+            {
+                display.print(lastPrinted);
+            }
+        }
 
 		// minimalist style
 		display.setTextSize(2);
