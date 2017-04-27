@@ -64,7 +64,9 @@ unsigned int switchModeDelay = 2000;
 // display last timer
 unsigned long lastPrintTime = 0;
 // this should be long enough so that people can tell what it says
+
 unsigned int showDelay = 1500;
+
 // last switch time
 unsigned long switchTime = 0;
 
@@ -176,7 +178,6 @@ void keypress(int val)
 		if (index == 7) { keyStroke = 0; }
 
 		keyStroke += (val << index);
-
 		// index decrements from 0->7 when LTR
 		index--;
 
@@ -186,8 +187,6 @@ void keypress(int val)
 			index = 7;
 		}
 	}
-
-
 }
 
 void sendVal(char val)
@@ -327,7 +326,6 @@ void loop() {
 	{
 		switchModeTimerStartPress = 0;
 	}
-
 	// in single button press mode, ignore the debounce timers
 	if (mode)
 	{
@@ -372,7 +370,6 @@ void loop() {
 				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
 			}
 		}
-
 		if (buttonStateZero)
 		{
 			Keyboard.press(CHAR_ZERO);
@@ -434,6 +431,5 @@ void loop() {
 			}
 		}
 	}
-
 	display.display();
 }
