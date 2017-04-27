@@ -192,7 +192,7 @@ void keypress(int val)
 
 void sendVal(char val)
 {
-    if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER)) {
+    if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER))) {
         Keyboard.write(val);
     } else {
         Keyboard.press(KEY_LEFT_CTRL);
