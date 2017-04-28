@@ -18,6 +18,21 @@ Binary Keyboard for Arduino Pro Micro
 // false = left to right (most significant bit to least)
 #define USE_RIGHT_TO_LEFT false
 
+// flag for outputting chars in HID keyboard mode or pure ctrl char mode (pure ASCII)
+// true = HID keyboard - outputs keyboard codes for Backspace (8), Tab (9) and Enter (10), otherwise ctrl chars as below
+// false = Ctrl char ASCII - outputs ctrl char corresponding to byte value entered (BS == Ctrl-H, Tab == Ctrl-I, Enter == Ctrl-J, etc.)
+#define HID_MODE true
+
+// These are the indices into the _asciimap array defined in Arduino Keyboard.cpp
+#define HID_BS 0x08
+#define HID_TAB 0x09
+#define HID_ENTER 0x0A
+
+// Strings to display when in HID mode
+#define HID_BS_STRING "BS"
+#define HID_TAB_STRING "Tab"
+#define HID_ENTER_STRING "Enter"
+
 // button pins
 #define BUTTON_ZERO 8
 #define BUTTON_ONE 9
@@ -49,7 +64,9 @@ unsigned int switchModeDelay = 2000;
 // display last timer
 unsigned long lastPrintTime = 0;
 // this should be long enough so that people can tell what it says
-unsigned int showDelay = 1500; 
+
+unsigned int showDelay = 1500;
+
 // last switch time
 unsigned long switchTime = 0;
 
@@ -95,7 +112,7 @@ void setup() {
 	// display
 	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 	// set screen rotation
-	display.setRotation(SCREEN_ROTATION);  
+	display.setRotation(SCREEN_ROTATION);
 
 	// do some fancy screen stuff on boot
 	display.clearDisplay();
@@ -161,7 +178,6 @@ void keypress(int val)
 		if (index == 7) { keyStroke = 0; }
 
 		keyStroke += (val << index);
-		
 		// index decrements from 0->7 when LTR
 		index--;
 
@@ -171,15 +187,25 @@ void keypress(int val)
 			index = 7;
 		}
 	}
-
-	
 }
 
 void sendVal(char val)
 {
-	Keyboard.write(val);
-	lastPrintTime = millis();
-	lastPrinted = val;
+    if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER))) {
+        Keyboard.write(val);
+    } else {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(val + 96);
+        Keyboard.releaseAll();
+    }
+    lastPrintTime = millis();
+    lastPrinted = val;
+}
+
+void dispCtrlChar(char val)
+{
+    display.print('^');
+    display.print((char)(val + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
 }
 
 void loop() {
@@ -202,7 +228,7 @@ void loop() {
 	if (mode)
 	{
 		// single button press mode
-		// draw black rectangle behind text    
+		// draw black rectangle behind text
 		//display.setTextSize(2);
 		//display.setTextColor(WHITE, BLACK);
 		//display.setCursor(61, 8); // roughly centered text
@@ -224,8 +250,36 @@ void loop() {
 			display.setCursor(0, 0);
 			display.setTextSize(1);
 			display.print("Last: ");
-			display.print(lastPrinted);
-		}
+            if (lastPrinted > 0 && lastPrinted < 32)
+            {
+                if (HID_MODE)
+                {
+                    switch (lastPrinted)
+                    {
+                        case HID_BS:
+                            display.print(HID_BS_STRING);
+                            break;
+                        case HID_TAB:
+                            display.print(HID_TAB_STRING);
+                            break;
+                        case HID_ENTER:
+                            display.print(HID_ENTER_STRING);
+                            break;
+                        default:
+                            dispCtrlChar(lastPrinted);
+                            break;
+                    }
+                }
+                else
+                {
+                    dispCtrlChar(lastPrinted);
+                }
+            }
+            else
+            {
+                display.print(lastPrinted);
+            }
+        }
 
 		// minimalist style
 		display.setTextSize(2);
@@ -272,7 +326,6 @@ void loop() {
 	{
 		switchModeTimerStartPress = 0;
 	}
-	
 	// in single button press mode, ignore the debounce timers
 	if (mode)
 	{
@@ -317,7 +370,6 @@ void loop() {
 				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
 			}
 		}
-		
 		if (buttonStateZero)
 		{
 			Keyboard.press(CHAR_ZERO);
@@ -379,6 +431,5 @@ void loop() {
 			}
 		}
 	}
-
-	display.display();	
+	display.display();
 }
