@@ -1,17 +1,35 @@
 /*
-Chris Johnston Apr 13 2017
-Binary Keyboard for Arduino Pro Micro
+	Binary Keyboard
+	For full source and contributors, please visit: https://github.com/Chris-Johnston/BinaryKeyboard
 */
 
-// libraries
+// Included Libraries for Arduino Micro 
 #include <Keyboard.h>
 #include <Wire.h>
 #include <SPI.h>
+
+/* 
+	Prerequisite Libraries 
+	These must be in your libraries directory before building!
+	See https://www.arduino.cc/en/Guide/Libraries for more details.
+*/
+
+// Adafruit GFX - https://github.com/adafruit/Adafruit-GFX-Library
+// Provides methods used for drawing.
 #include <Adafruit_GFX.h>
+
+
+// Adafruit SSD1306 - https://github.com/adafruit/Adafruit_SSD1306 
+// Enables support for the SSD1306 OLED display.
 #include <Adafruit_SSD1306.h>
 
-// pixel art for 1/0 mode w/ animations
+// Pixel Art Frame Definition File 
 #include "PixelArt.h"
+
+/*
+	Software Configuration Definitions
+	Adjust these to your preference before compiling and uploading.
+*/
 
 // flag for reading/entering right to left or left to right
 // true = right to left (least significant bit to most)
@@ -23,6 +41,51 @@ Binary Keyboard for Arduino Pro Micro
 // false = Ctrl char ASCII - outputs ctrl char corresponding to byte value entered (BS == Ctrl-H, Tab == Ctrl-I, Enter == Ctrl-J, etc.)
 #define HID_MODE true
 
+// Output characters for "Single button press mode"
+//todo allow picking which side is which character, currently is kinda flip flopped
+#define CHAR_ZERO '0' // right
+#define CHAR_ONE '1' // left
+
+// time in ms to hold both buttons to switch modes
+#define DELAY_SWITCH_MODES 2000
+// time in ms to show the last printed character on screen
+#define DELAY_SHOW_LAST_PRINTED 2000
+// toggle to disable changing modes
+#define CAN_SWITCH_MODES true
+
+// LED PWM value decay rate
+#define LED_DECAY_RATE 10
+
+// which mode to start up in. False = Binary Mode, True = Single button press mode
+#define MODE_ON_START false
+
+/*
+	Configuration Definitions
+	Adjust these to match your circuit and hardware before compiling and uploading.
+*/
+
+// Button Pins - Connected as input 
+#define BUTTON_ZERO 8
+#define BUTTON_ONE 9
+
+// Led Pins - Connected as PWM output 
+#define LED_ZERO 5
+#define LED_ONE 6
+
+// time in ms for button debouncing
+// cherry reports <= 5 ms debounce : http://cherryamericas.com/product/mx-series-2/#84b4bc7a7a0396678
+#define DELAY_DEBOUNCE 5
+
+
+// Rotation of the SSD_1306 OLED Display
+// In testing, 2 rotated the screen so that the up direction faced away from the pins.
+// 0 rotated the screen so that the up direction faced toward the pins.
+// YMMV
+
+#define SCREEN_ROTATION 2
+
+/* Other Definitions */
+
 // These are the indices into the _asciimap array defined in Arduino Keyboard.cpp
 #define HID_BS 0x08
 #define HID_TAB 0x09
@@ -33,61 +96,53 @@ Binary Keyboard for Arduino Pro Micro
 #define HID_TAB_STRING "Tab"
 #define HID_ENTER_STRING "Enter"
 
-// button pins
-#define BUTTON_ZERO 8
-#define BUTTON_ONE 9
-
-#define LED_ZERO 5
-#define LED_ONE 6
-
-#define SCREEN_ROTATION 2
-
-#define X_RESOLUTION 128
-#define Y_RESOLUTION 32
-
-// constant characters for zero and one (for single button press mode)
-// hey osu players, you should look at these, do X for ZERO, Z for ONE
-#define CHAR_ZERO '0' // right
-#define CHAR_ONE '1' // left
-
 // set up display
 #define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
 
-// timer
-unsigned long debounceTimer = 0;
-unsigned int debounceDelay = 5;
-// switch mode delay
-unsigned long switchModeTimerStartPress = 0;
-// increased switch mode delay
-unsigned int switchModeDelay = 2000;
-// display last timer
+// resolution of the SSD_1306 display
+#define X_RESOLUTION 128
+#define Y_RESOLUTION 32
+
+// various timers for debouncing, animations, mode switching
+
+// indicates the time of the last button press for each button
+unsigned long debounceTimerZero = 0;
+unsigned long debounceTimerOne = 0;
+
+// the timer used to track how long both buttons have been pressed down
+unsigned long switchModeTimerStartPress = 0; 
+
+// time when last character was printed out
 unsigned long lastPrintTime = 0;
-// this should be long enough so that people can tell what it says
 
-unsigned int showDelay = 1500;
-
-// last switch time
+// the timer used to track when the last time modes were switched
 unsigned long switchTime = 0;
 
-// used for one/zero mode timing
+// used for one/zero mode animation timing
 unsigned long timerOne = 0, timerZero = 0;
 
-// flag for what mode it will start in
-bool mode = false; // false = binary mode, true = single button press mode
+// flag for the current mode
+bool mode = MODE_ON_START; // false = binary mode, true = single button press mode
 
+// value of the last printed character
 char lastPrinted = ' ';
 
-// keystroke value
-byte keyStroke = 0; //B01010101;
+// keystroke value being entered
+byte keyStroke = 0;
+// the index of the byte being entered
 int index = 0;
 
+// values for the state of each of the buttons
 bool buttonStateZero, buttonStateOne;
 // PWM values for each led
 int ledZero, ledOne;
-int ledDecayRate = 10;
+
 
 void setup() {
+
+	//todo deal with ASCII values > 128. it actually looks like Keyboard.h does not support these.
+	//not sure if I can get around it or if I should restrict to only using normal ASCII table
 
 	if (USE_RIGHT_TO_LEFT)
 	{
@@ -153,10 +208,12 @@ void setup() {
 	analogWrite(LED_ONE, 0);
 }
 
-// deals with a keypress
+/*
+	Method called whenever a key is pressed down in binary mode
+	val is assumed to be either a 1 or a 0
+*/
 void keypress(int val)
 {
-
 	if (USE_RIGHT_TO_LEFT)
 	{
 		// clear the keystroke only when starting to type once again
@@ -189,19 +246,27 @@ void keypress(int val)
 	}
 }
 
+/*
+	Handles writing a value in binary mode
+*/
 void sendVal(char val)
 {
     if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER))) {
         Keyboard.write(val);
     } else {
+		// for ASCII < 0x20, use control characters in uppercase
         Keyboard.press(KEY_LEFT_CTRL);
         Keyboard.press(val + 96);
         Keyboard.releaseAll();
     }
+	// update timers and last printed value to be used for drawing output
     lastPrintTime = millis();
     lastPrinted = val;
 }
 
+/*
+	Handles the displaying of control characters
+*/
 void dispCtrlChar(char val)
 {
     display.print('^');
@@ -219,37 +284,20 @@ void loop() {
 	analogWrite(LED_ZERO, ledZero);
 	analogWrite(LED_ONE, ledOne);
 
-	ledZero = max(0, ledZero - ledDecayRate);
-	ledOne = max(0, ledOne - ledDecayRate);
+	ledZero = max(0, ledZero - LED_DECAY_RATE);
+	ledOne = max(0, ledOne - LED_DECAY_RATE);
 
 	display.clearDisplay();
 
-	// do drawing stuff
-	if (mode)
+	// display the last printed character in binary keyboard mode for a given amount of time
+	if (!mode)
 	{
-		// single button press mode
-		// draw black rectangle behind text
-		//display.setTextSize(2);
-		//display.setTextColor(WHITE, BLACK);
-		//display.setCursor(61, 8); // roughly centered text
-		//display.print(lastPrinted);
-
-
-		// removing this for now, it gets in the way of the bitmaps
-		/*if (((millis() - switchTime) < switchModeDelay))
-		{
-			display.setCursor(0, 0);
-			display.setTextSize(1);
-			display.print("Press & Hold Both To Return");
-		}*/
-	}
-	else
-	{
-		if ((millis() - lastPrintTime) < showDelay)
+		if ((millis() - lastPrintTime) < DELAY_SHOW_LAST_PRINTED)
 		{
 			display.setCursor(0, 0);
 			display.setTextSize(1);
 			display.print("Last: ");
+			// handle printing of control characters or their equivalents
             if (lastPrinted > 0 && lastPrinted < 32)
             {
                 if (HID_MODE)
@@ -281,7 +329,7 @@ void loop() {
             }
         }
 
-		// minimalist style
+		// print out all 8 bits in (roughly) the center of the screen
 		display.setTextSize(2);
 		display.setTextColor(WHITE, BLACK);
 		display.setCursor(16, 8);
@@ -303,13 +351,16 @@ void loop() {
 	}
 
 	// handle switching between modes
-	if (buttonStateZero && buttonStateOne)
+	if (buttonStateZero && buttonStateOne && CAN_SWITCH_MODES)
 	{
 		if (switchModeTimerStartPress == 0)
 		{
+			// track when both buttons were first pressed
 			switchModeTimerStartPress = millis();
 		}
-		else if (((millis() - switchModeTimerStartPress) > switchModeDelay) && previousOne && previousZero)
+		// when both buttons were pressed DELAY_SWITCH_MODES ms ago, switch the mode
+		// probably don't have to test that previousOne and previousZero are true
+		else if (((millis() - switchModeTimerStartPress) > DELAY_SWITCH_MODES) && previousOne && previousZero)
 		{
 			switchModeTimerStartPress = millis();
 			mode = !mode;
@@ -317,25 +368,35 @@ void loop() {
 			lastPrinted = '0';
 		}
 
-		int width = map(millis() - switchModeTimerStartPress, 0, switchModeDelay, 0, 128);
-
 		// draw a 'progress bar' indicating when this will switch over
+		int width = map(millis() - switchModeTimerStartPress, 0, DELAY_SWITCH_MODES, 0, X_RESOLUTION);
 		display.drawRect(0, 30, width, 2, WHITE);
 	}
 	else
 	{
+		// reset the timer when both buttons are not being pressed
 		switchModeTimerStartPress = 0;
 	}
-	// in single button press mode, ignore the debounce timers
+
+	// if single button press mode
 	if (mode)
 	{
-		if (buttonStateOne)
+		// if one is debounced
+		if ((millis() - debounceTimerOne) > DELAY_DEBOUNCE)
 		{
-			//display.drawRect(1, 1, 62, 30, WHITE);
-			Keyboard.press(CHAR_ONE);
+			// check if it has been pressed
+			if (buttonStateOne && !previousOne)
+			{
+				// the press function will press this button down and it will not be released
+				// unless explicitly told to
+				Keyboard.press(CHAR_ONE);
+				debounceTimerOne = millis();
+				//timerOne = millis();
+			}
 		}
-		else
+		if(!buttonStateOne)
 		{
+			// time on release
 			timerOne = millis();
 			Keyboard.release(CHAR_ONE);
 		}
@@ -370,12 +431,22 @@ void loop() {
 				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
 			}
 		}
-		if (buttonStateZero)
+
+		// handle stuff for button zero
+
+		// if zero is debounced
+		if ((millis() - debounceTimerZero) > DELAY_DEBOUNCE)
 		{
-			Keyboard.press(CHAR_ZERO);
+			// check if it has been pressed
+			if (buttonStateZero && !previousZero)
+			{
+				Keyboard.press(CHAR_ZERO);
+				debounceTimerZero = millis();
+			}
 		}
-		else
+		if (!buttonStateZero)
 		{
+			// time on release
 			timerZero = millis();
 			Keyboard.release(CHAR_ZERO);
 		}
@@ -410,26 +481,31 @@ void loop() {
 				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
 			}
 		}
-
 	}
 	else // in normal binary keyboard mode
 	{
-		// debounce
-		if ((millis() - debounceTimer) > debounceDelay)
+		// debouncing for each button
+		if ((millis() - debounceTimerZero) > DELAY_DEBOUNCE)
 		{
-			// zero pressed
+			// zero pressed, and one is not pressed (otherwise this would cause issues with holding down both)
 			if (buttonStateZero && !buttonStateOne && !previousZero)
 			{
 				keypress(0);
-				debounceTimer = millis();
+				debounceTimerZero = millis();
 			}
-			// one pressed
-			else if (!buttonStateZero && buttonStateOne && !previousOne)
+		}
+
+		if ((millis() - debounceTimerOne) > DELAY_DEBOUNCE)
+		{
+			// one pressed, and zero is not pressed
+			if (!buttonStateZero && buttonStateOne && !previousOne)
 			{
 				keypress(1);
-				debounceTimer = millis();
+				debounceTimerOne = millis();
 			}
 		}
 	}
+
+	// actually update the screen with these graphics
 	display.display();
 }

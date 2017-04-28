@@ -2,8 +2,9 @@
 Pixel art by https://twitter.com/omrii_ https://github.com/OmriN7
 */
 
-#include <avr/pgmspace.h>
+#include <avr/pgmspace.h> // PROGMEM stuff
 
+// delay between each frame of animation
 #define FRAME_DELAY_MS 50
 
 // bitmap & text coordinate positioning
