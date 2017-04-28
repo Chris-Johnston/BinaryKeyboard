@@ -58,7 +58,7 @@ These libraries are used to drive the SSD1306 OLED display.
 - [Adafruit_SSD1306](https://github.com/adafruit/Adafruit_SSD1306)
 
 ## Eagle Schematic Details
-Because I could not locate a part to represent the SSD1306 OLED Display, I created my own. This can be found in the 
+Because I could not locate a part to represent the SSD1306 OLED Display, I created my own. This can be found in the
 `CSJ Library` file for Eagle. A word of warning, this was my first time using Eagle. The part works, but could be improved.
 
 Uses [c0z3n/cherrymx-eagle](https://github.com/c0z3n/cherrymx-eagle/) library as well.
@@ -75,7 +75,7 @@ In this mode, each key will represent a '1' or a '0' just like on a traditional 
 Initially I was going to use a [DigiStump](http://digistump.com/products/1) board for this, but I found issues with not having enough memory to work with after importing libraries and not enough I/O. I'm using an Arduino Pro Micro knockoff. The reason that there is electrical tape covering it is because I found that shorting the contacts with a finger would cause it to stop working. I'm still not really sure why.
 
 ### Keyboard Class Limitations
-This project relies on the Arduino Keyboard library to handle all USB HID support. 
+This project relies on the Arduino Keyboard library to handle all USB HID support.
 It works great for printing standard characters and most operations, however, a downside of using this means that
 not all ASCII values are supported. [Most of the values below `0x20` are not actually supported.](https://github.com/arduino-libraries/Keyboard/blob/master/src/Keyboard.cpp#L88)
 
@@ -86,11 +86,11 @@ The functionality of Backspace, Tab, and Enter is still preserved by setting `HI
 
 | Binary     | `HID_MODE false` | `HID_MODE true` |
 | ---------- | ---------------- | --------------- |
-| `00000001` | `L_CTRL + A`     | `L_CTRL + A`    |
-| `00000010` | `L_CTRL + B`     | `L_CTRL + B`    |
-| `00001000` | `L_CTRL + H`     | `Backspace`     |
-| `00001001` | `L_CTRL + I`     | `Tab`           |
-| `00001010` | `L_CTRL + J`     | `Enter`         |
+| `00000001` | `L_CTRL + a`     | `L_CTRL + a`    |
+| `00000010` | `L_CTRL + b`     | `L_CTRL + b`    |
+| `00001000` | `L_CTRL + h`     | `Backspace`     |
+| `00001001` | `L_CTRL + i`     | `Tab`           |
+| `00001010` | `L_CTRL + j`     | `Enter`         |
 | `00100000` | ` ` (whitespace) | ` ` (whitespace)|
 | `00100001` | `!`              | `!`             |
 | `01100001` | `a`              | `a`             |

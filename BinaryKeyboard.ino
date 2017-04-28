@@ -3,13 +3,13 @@
 	For full source and contributors, please visit: https://github.com/Chris-Johnston/BinaryKeyboard
 */
 
-// Included Libraries for Arduino Micro 
+// Included Libraries for Arduino Micro
 #include <Keyboard.h>
 #include <Wire.h>
 #include <SPI.h>
 
-/* 
-	Prerequisite Libraries 
+/*
+	Prerequisite Libraries
 	These must be in your libraries directory before building!
 	See https://www.arduino.cc/en/Guide/Libraries for more details.
 */
@@ -19,11 +19,11 @@
 #include <Adafruit_GFX.h>
 
 
-// Adafruit SSD1306 - https://github.com/adafruit/Adafruit_SSD1306 
+// Adafruit SSD1306 - https://github.com/adafruit/Adafruit_SSD1306
 // Enables support for the SSD1306 OLED display.
 #include <Adafruit_SSD1306.h>
 
-// Pixel Art Frame Definition File 
+// Pixel Art Frame Definition File
 #include "PixelArt.h"
 
 /*
@@ -64,11 +64,11 @@
 	Adjust these to match your circuit and hardware before compiling and uploading.
 */
 
-// Button Pins - Connected as input 
+// Button Pins - Connected as input
 #define BUTTON_ZERO 8
 #define BUTTON_ONE 9
 
-// Led Pins - Connected as PWM output 
+// Led Pins - Connected as PWM output
 #define LED_ZERO 5
 #define LED_ONE 6
 
@@ -111,7 +111,7 @@ unsigned long debounceTimerZero = 0;
 unsigned long debounceTimerOne = 0;
 
 // the timer used to track how long both buttons have been pressed down
-unsigned long switchModeTimerStartPress = 0; 
+unsigned long switchModeTimerStartPress = 0;
 
 // time when last character was printed out
 unsigned long lastPrintTime = 0;
@@ -254,7 +254,7 @@ void sendVal(char val)
     if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER))) {
         Keyboard.write(val);
     } else {
-		// for ASCII < 0x20, use control characters in uppercase
+		// for ASCII < 0x20, use control characters in lowercase
         Keyboard.press(KEY_LEFT_CTRL);
         Keyboard.press(val + 96);
         Keyboard.releaseAll();
