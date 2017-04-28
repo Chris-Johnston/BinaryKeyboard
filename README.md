@@ -64,8 +64,8 @@ Because I could not locate a part to represent the SSD1306 OLED Display, I creat
 Uses [c0z3n/cherrymx-eagle](https://github.com/c0z3n/cherrymx-eagle/) library as well.
 
 ## Usage
-Each byte can either be typed from most significant bit to least significant bit (left to right), or least significant bit to most significant bit (right to left). This is set before uploading to the board.
-After all 8 bits have been entered, it will type out the ASCII value equivalent of that binary value. The Pro Micro has native USB support,
+Each byte can either be typed from most significant bit to least significant bit (left to right), or least significant bit to most significant bit (right to left). This is configured before compiling and uploading to the board.
+After all 8 bits have been entered, it will type out the ASCII value equivalent of that binary value. The Pro Micro has USB HID support,
 which means it acts just like any other keyboard.
 
 If both keys are held down, the keyboard will switch to "1/0 mode" / "single button press mode" (I'm bad at names).
@@ -74,10 +74,38 @@ In this mode, each key will represent a '1' or a '0' just like on a traditional 
 ## Arduino Problems
 Initially I was going to use a [DigiStump](http://digistump.com/products/1) board for this, but I found issues with not having enough memory to work with after importing libraries and not enough I/O. I'm using an Arduino Pro Micro knockoff. The reason that there is electrical tape covering it is because I found that shorting the contacts with a finger would cause it to stop working. I'm still not really sure why.
 
+### Keyboard Class Limitations
+This project relies on the Arduino Keyboard library to handle all USB HID support. 
+It works great for printing standard characters and most operations, however, a downside of using this means that
+not all ASCII values are supported. [Most of the values below `0x20` are not actually supported.](https://github.com/arduino-libraries/Keyboard/blob/master/src/Keyboard.cpp#L88)
+
+User [dtwilliamson](https://github.com/dtwilliamson) [added a feature](https://github.com/Chris-Johnston/BinaryKeyboard/pull/5) that repurposes these values as control commands.
+[Here is a list of some control key commands](https://en.wikipedia.org/wiki/Control_key#Examples).
+
+The functionality of Backspace, Tab, and Enter is still preserved by setting `HID_MODE` to `true`.
+
+| Binary     | `HID_MODE false` | `HID_MODE true` |
+| ---------- | ---------------- | --------------- |
+| `00000001` | `L_CTRL + A`     | `L_CTRL + A`    |
+| `00000010` | `L_CTRL + B`     | `L_CTRL + B`    |
+| `00001000` | `L_CTRL + H`     | `Backspace`     |
+| `00001001` | `L_CTRL + I`     | `Tab`           |
+| `00001010` | `L_CTRL + J`     | `Enter`         |
+| `00100000` | ` ` (whitespace) | ` ` (whitespace)|
+| `00100001` | `!`              | `!`             |
+| `01100001` | `a`              | `a`             |
+| `01000001` | `A`              | `A`             |
+
+Note that CTRL+H, CTRL+I, and CTRL+J function the same in a Unix command line as the keys do. Up to you which setting to use. `HID_MODE true` works just fine in Windows and the GNOME desktop environment.
+
 # Contribution and Modifications
-Please feel free to fork this project for your own purposes.
+Please feel free to fork this project for your own purposes. If you build one, I would love to see it!
+
+If you have suggestions/improvements/feedback/bug reports/etc., submitting a pull request or an issue through GitHub is the best way to contribute.
 
 # Acknowledgments
 Special thanks goes to everyone in the UWB Makerspace that helped make this possible.
 
 Pixel art for screen animations by [@Omrii_](https://twitter.com/omrii_) https://github.com/OmriN7.
+
+Please see the [Binary Keyboard contributors page](https://github.com/Chris-Johnston/BinaryKeyboard/graphs/contributors) for a list of contributors. Many thanks to each of you for your support!
