@@ -86,11 +86,11 @@ The functionality of Backspace, Tab, and Enter is still preserved by setting `HI
 
 | Binary     | `HID_MODE false` | `HID_MODE true` |
 | ---------- | ---------------- | --------------- |
-| `00000001` | `L_CTRL + a`     | `L_CTRL + a`    |
-| `00000010` | `L_CTRL + b`     | `L_CTRL + b`    |
-| `00001000` | `L_CTRL + h`     | `Backspace`     |
-| `00001001` | `L_CTRL + i`     | `Tab`           |
-| `00001010` | `L_CTRL + j`     | `Enter`         |
+| `00000001` | `L_CTRL + A`     | `L_CTRL + A`    |
+| `00000010` | `L_CTRL + B`     | `L_CTRL + B`    |
+| `00001000` | `L_CTRL + H`     | `Backspace`     |
+| `00001001` | `L_CTRL + I`     | `Tab`           |
+| `00001010` | `L_CTRL + J`     | `Enter`         |
 | `00100000` | ` ` (whitespace) | ` ` (whitespace)|
 | `00100001` | `!`              | `!`             |
 | `01100001` | `a`              | `a`             |
