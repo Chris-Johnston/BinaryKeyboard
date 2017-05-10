@@ -366,6 +366,7 @@ void loop() {
 			mode = !mode;
 			switchTime = millis();
 			lastPrinted = '0';
+			Keyboard.releaseAll();
 		}
 
 		// draw a 'progress bar' indicating when this will switch over
