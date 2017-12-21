@@ -18,7 +18,6 @@
 // Provides methods used for drawing.
 #include <Adafruit_GFX.h>
 
-
 // Adafruit SSD1306 - https://github.com/adafruit/Adafruit_SSD1306
 // Enables support for the SSD1306 OLED display.
 #include <Adafruit_SSD1306.h>
@@ -64,9 +63,11 @@
 	Adjust these to match your circuit and hardware before compiling and uploading.
 */
 
-// Button Pins - Connected as input
+// Button Pins
 #define BUTTON_ZERO 8
 #define BUTTON_ONE 9
+// shared cathode of both diodes connected to the keys
+#define BUTTON_CATHODE 4
 
 // Led Pins - Connected as PWM output
 #define LED_ZERO 5
@@ -140,72 +141,72 @@ int ledZero, ledOne;
 
 
 void setup() {
+  //todo deal with ASCII values > 128. it actually looks like Keyboard.h does not support these.
+  //not sure if I can get around it or if I should restrict to only using normal ASCII table
+  // this is the benefit for using the QMK firmware, let them deal with the more complex stuff
 
-	//todo deal with ASCII values > 128. it actually looks like Keyboard.h does not support these.
-	//not sure if I can get around it or if I should restrict to only using normal ASCII table
+  if (USE_RIGHT_TO_LEFT)
+  {
+    index = 0;
+    }
+  else
+  {
+    index = 7;
+  }
 
-	if (USE_RIGHT_TO_LEFT)
-	{
-		index = 0;
-	}
-	else
-	{
-		index = 7;
-	}
+  Keyboard.begin();
 
-	//Serial.begin(9600);
-	Keyboard.begin();
+  // leds
+  pinMode(LED_ZERO, OUTPUT);
+  pinMode(LED_ONE, OUTPUT);
 
-	// leds
-	pinMode(LED_ZERO, OUTPUT);
-	pinMode(LED_ONE, OUTPUT);
+  // buttons
+  pinMode(BUTTON_ZERO, INPUT_PULLUP);
+  pinMode(BUTTON_ONE, INPUT_PULLUP);
+  pinMode(BUTTON_CATHODE, OUTPUT);
 
-	// buttons
-	pinMode(BUTTON_ZERO, INPUT);
-	pinMode(BUTTON_ONE, INPUT);
+  // display
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  // set screen rotation
+  display.setRotation(SCREEN_ROTATION);
 
-	// display
-	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-	// set screen rotation
-	display.setRotation(SCREEN_ROTATION);
+  // do some fancy screen stuff on boot
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.setTextColor(WHITE);
+  display.print("Binary Keyboard!\ngithub.com/\n     Chris-Johnston");
+  display.display();
+  delay(1000);
+  // wipes the screen away with an effect
+  display.setCursor(0, 0);
+  int width = 15;
+  for (int i = 0; i < X_RESOLUTION / 6 + width + Y_RESOLUTION / 8; i++)
+  {
+    analogWrite(LED_ZERO, millis() / 2 % 255);
+    analogWrite(LED_ONE, millis() / 2 % 255);
 
-	// do some fancy screen stuff on boot
-	display.clearDisplay();
-	display.setCursor(0, 0);
-	display.setTextColor(WHITE);
-	display.print("Binary Keyboard!\ngithub.com/\n     Chris-Johnston");
-	display.display();
-	delay(1000);
-	// wipes the screen away with an effect
-	display.setCursor(0, 0);
-	int width = 15;
-	for (int i = 0; i < X_RESOLUTION / 6 + width + Y_RESOLUTION / 8; i++)
-	{
-		analogWrite(LED_ZERO, millis() / 2 % 255);
-		analogWrite(LED_ONE, millis() / 2 % 255);
+    // iterate horizontally
+    for (int j = 0; j < Y_RESOLUTION / 8; j++)
+    {
+      //iterate vertically
+      char c = ((i + j) % 2) ? '1' : '0';
+      if (i == 2 && j == 2)
+      {
+        c = '2'; // wonder if anyone will notice? EDIT: Yes, people did. LOL
+        /*
+          Bender:	Whoa, what an awful dream. Ones and zeroes everywhere. And I thought I saw a two.
+          Fry:		It was just a dream Bender. There's no such thing as two.
+        */
+      }
+      display.drawChar(i * 6, j * 8, c, WHITE, BLACK, 1);
+      display.drawChar((i - width) * 6, j * 8, ' ', WHITE, BLACK, 1);
+    }
+    delay(10);
+    display.display();
+  }
 
-		// iterate horizontally
-		for (int j = 0; j < Y_RESOLUTION / 8; j++)
-		{
-			//iterate vertically
-			char c = ((i + j) % 2) ? '1' : '0';
-			if (i == 2 && j == 2)
-			{
-				c = '2'; // wonder if anyone will notice? EDIT: Yes, people did. LOL
-				/*
-				* Bender:	Whoa, what an awful dream. Ones and zeroes everywhere. And I thought I saw a two.
-				* Fry:		It was just a dream Bender. There's no such thing as two.
-				*/
-			}
-			display.drawChar(i * 6, j * 8, c, WHITE, BLACK, 1);
-			display.drawChar((i - width) * 6, j * 8, ' ', WHITE, BLACK, 1);
-		}
-		delay(10);
-		display.display();
-	}
-
-	analogWrite(LED_ZERO, 0);
-	analogWrite(LED_ONE, 0);
+  analogWrite(LED_ZERO, 0);
+  analogWrite(LED_ONE, 0);
 }
 
 /*
@@ -214,36 +215,40 @@ void setup() {
 */
 void keypress(int val)
 {
-	if (USE_RIGHT_TO_LEFT)
-	{
-		// clear the keystroke only when starting to type once again
-		if (index == 0) { keyStroke = 0; }
+  if (USE_RIGHT_TO_LEFT)
+  {
+    // clear the keystroke only when starting to type once again
+    if (index == 0) {
+      keyStroke = 0;
+    }
 
-		keyStroke += val << index;
-		// index increments from 0 -> 7 when RTL
-		index++;
+    keyStroke += val << index;
+    // index increments from 0 -> 7 when RTL
+    index++;
 
-		if (index > 7)
-		{
-			sendVal((char)keyStroke);
-			index = 0;
-		}
-	}
-	else
-	{
-		// clear the keystroke only when starting to type once again
-		if (index == 7) { keyStroke = 0; }
+    if (index > 7)
+    {
+      sendVal((char)keyStroke);
+      index = 0;
+    }
+  }
+  else
+  {
+    // clear the keystroke only when starting to type once again
+    if (index == 7) {
+      keyStroke = 0;
+    }
 
-		keyStroke += (val << index);
-		// index decrements from 0->7 when LTR
-		index--;
+    keyStroke += (val << index);
+    // index decrements from 0->7 when LTR
+    index--;
 
-		if (index < 0)
-		{
-			sendVal((char)keyStroke);
-			index = 7;
-		}
-	}
+    if (index < 0)
+    {
+      sendVal((char)keyStroke);
+      index = 7;
+    }
+  }
 }
 
 /*
@@ -251,17 +256,17 @@ void keypress(int val)
 */
 void sendVal(char val)
 {
-    if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER))) {
-        Keyboard.write(val);
-    } else {
-		// for ASCII < 0x20, use control characters in lowercase
-        Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(val + 96);
-        Keyboard.releaseAll();
-    }
-	// update timers and last printed value to be used for drawing output
-    lastPrintTime = millis();
-    lastPrinted = val;
+  if (val >= 32 || (HID_MODE && (val == HID_BS || val == HID_TAB || val == HID_ENTER))) {
+    Keyboard.write(val);
+  } else {
+    // for ASCII < 0x20, use control characters in lowercase
+    Keyboard.press(KEY_LEFT_CTRL);
+    Keyboard.press(val + 96);
+    Keyboard.releaseAll();
+  }
+  // update timers and last printed value to be used for drawing output
+  lastPrintTime = millis();
+  lastPrinted = val;
 }
 
 /*
@@ -269,244 +274,254 @@ void sendVal(char val)
 */
 void dispCtrlChar(char val)
 {
-    display.print('^');
-    display.print((char)(val + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
+  display.print('^');
+  display.print((char)(val + 64)); // Use uppercase representation (e.g. ^A instead of ^a)
 }
 
 void loop() {
-	bool previousZero = buttonStateZero;
-	bool previousOne = buttonStateOne;
+  bool previousZero = buttonStateZero;
+  bool previousOne = buttonStateOne;
 
-	buttonStateOne = digitalRead(BUTTON_ONE);
-	buttonStateZero = digitalRead(BUTTON_ZERO);
+  // read the states of the buttons like a keypad
 
-	// write LED values
-	analogWrite(LED_ZERO, ledZero);
-	analogWrite(LED_ONE, ledOne);
+  // set the common cathode to low
+  pinMode(BUTTON_CATHODE, OUTPUT);
+  digitalWrite(BUTTON_CATHODE, LOW);
+  // read the state of each pin
+  // need to use the inverse value due to how input pullup works
+  pinMode(BUTTON_ONE, INPUT_PULLUP);
+  buttonStateOne = !digitalRead(BUTTON_ONE);
+ 
+  pinMode(BUTTON_ZERO, INPUT_PULLUP);
+  buttonStateZero = !digitalRead(BUTTON_ZERO);
 
-	ledZero = max(0, ledZero - LED_DECAY_RATE);
-	ledOne = max(0, ledOne - LED_DECAY_RATE);
+  // write LED values
+  analogWrite(LED_ZERO, ledZero);
+  analogWrite(LED_ONE, ledOne);
 
-	display.clearDisplay();
+  ledZero = max(0, ledZero - LED_DECAY_RATE);
+  ledOne = max(0, ledOne - LED_DECAY_RATE);
 
-	// display the last printed character in binary keyboard mode for a given amount of time
-	if (!mode)
-	{
-		if ((millis() - lastPrintTime) < DELAY_SHOW_LAST_PRINTED)
-		{
-			display.setCursor(0, 0);
-			display.setTextSize(1);
-			display.print("Last: ");
-			// handle printing of control characters or their equivalents
-            if (lastPrinted > 0 && lastPrinted < 32)
-            {
-                if (HID_MODE)
-                {
-                    switch (lastPrinted)
-                    {
-                        case HID_BS:
-                            display.print(HID_BS_STRING);
-                            break;
-                        case HID_TAB:
-                            display.print(HID_TAB_STRING);
-                            break;
-                        case HID_ENTER:
-                            display.print(HID_ENTER_STRING);
-                            break;
-                        default:
-                            dispCtrlChar(lastPrinted);
-                            break;
-                    }
-                }
-                else
-                {
-                    dispCtrlChar(lastPrinted);
-                }
-            }
-            else
-            {
-                display.print(lastPrinted);
-            }
+  display.clearDisplay();
+
+  // display the last printed character in binary keyboard mode for a given amount of time
+  if (!mode)
+  {
+    if ((millis() - lastPrintTime) < DELAY_SHOW_LAST_PRINTED)
+    {
+      display.setCursor(0, 0);
+      display.setTextSize(1);
+      display.print("Last: ");
+      // handle printing of control characters or their equivalents
+      if (lastPrinted > 0 && lastPrinted < 32)
+      {
+        if (HID_MODE)
+        {
+          switch (lastPrinted)
+          {
+            case HID_BS:
+              display.print(HID_BS_STRING);
+              break;
+            case HID_TAB:
+              display.print(HID_TAB_STRING);
+              break;
+            case HID_ENTER:
+              display.print(HID_ENTER_STRING);
+              break;
+            default:
+              dispCtrlChar(lastPrinted);
+              break;
+          }
         }
+        else
+        {
+          dispCtrlChar(lastPrinted);
+        }
+      }
+      else
+      {
+        display.print(lastPrinted);
+      }
+    }
 
-		// print out all 8 bits in (roughly) the center of the screen
-		display.setTextSize(2);
-		display.setTextColor(WHITE, BLACK);
-		display.setCursor(16, 8);
-		for (int i = 7; i >= 0; i--)
-		{
-			display.print(bitRead(keyStroke, i));
-		}
-		display.drawLine((8 - index - 1) * 12 + 16, 24, (8 - index) * 12 + 16, 24, WHITE);
-	}
+    // print out all 8 bits in (roughly) the center of the screen
+    display.setTextSize(2);
+    display.setTextColor(WHITE, BLACK);
+    display.setCursor(16, 8);
+    for (int i = 7; i >= 0; i--)
+    {
+      display.print(bitRead(keyStroke, i));
+    }
+    display.drawLine((8 - index - 1) * 12 + 16, 24, (8 - index) * 12 + 16, 24, WHITE);
+  }
 
-	// do backlighting stuff
-	if (buttonStateOne)
-	{
-		ledOne = 255;
-	}
-	if (buttonStateZero)
-	{
-		ledZero = 255;
-	}
+  // do backlighting stuff
+  if (buttonStateOne)
+  {
+    ledOne = 255;
+  }
+  if (buttonStateZero)
+  {
+    ledZero = 255;
+  }
 
-	// handle switching between modes
-	if (buttonStateZero && buttonStateOne && CAN_SWITCH_MODES)
-	{
-		if (switchModeTimerStartPress == 0)
-		{
-			// track when both buttons were first pressed
-			switchModeTimerStartPress = millis();
-		}
-		// when both buttons were pressed DELAY_SWITCH_MODES ms ago, switch the mode
-		// probably don't have to test that previousOne and previousZero are true
-		else if (((millis() - switchModeTimerStartPress) > DELAY_SWITCH_MODES) && previousOne && previousZero)
-		{
-			switchModeTimerStartPress = millis();
-			mode = !mode;
-			switchTime = millis();
-			lastPrinted = '0';
-			Keyboard.releaseAll();
-		}
+  // handle switching between modes
+  if (buttonStateZero && buttonStateOne && CAN_SWITCH_MODES)
+  {
+    if (switchModeTimerStartPress == 0)
+    {
+      // track when both buttons were first pressed
+      switchModeTimerStartPress = millis();
+    }
+    // when both buttons were pressed DELAY_SWITCH_MODES ms ago, switch the mode
+    // probably don't have to test that previousOne and previousZero are true
+    else if (((millis() - switchModeTimerStartPress) > DELAY_SWITCH_MODES) && previousOne && previousZero)
+    {
+      switchModeTimerStartPress = millis();
+      mode = !mode;
+      switchTime = millis();
+      lastPrinted = '0';
+      Keyboard.releaseAll();
+    }
 
-		// draw a 'progress bar' indicating when this will switch over
-		int width = map(millis() - switchModeTimerStartPress, 0, DELAY_SWITCH_MODES, 0, X_RESOLUTION);
-		display.drawRect(0, 30, width, 2, WHITE);
-	}
-	else
-	{
-		// reset the timer when both buttons are not being pressed
-		switchModeTimerStartPress = 0;
-	}
+    // draw a 'progress bar' indicating when this will switch over
+    int width = map(millis() - switchModeTimerStartPress, 0, DELAY_SWITCH_MODES, 0, X_RESOLUTION);
+    display.drawRect(0, 30, width, 2, WHITE);
+  }
+  else
+  {
+    // reset the timer when both buttons are not being pressed
+    switchModeTimerStartPress = 0;
+  }
 
-	// if single button press mode
-	if (mode)
-	{
-		// if one is debounced
-		if ((millis() - debounceTimerOne) > DELAY_DEBOUNCE)
-		{
-			// check if it has been pressed
-			if (buttonStateOne && !previousOne)
-			{
-				// the press function will press this button down and it will not be released
-				// unless explicitly told to
-				Keyboard.press(CHAR_ONE);
-				debounceTimerOne = millis();
-				//timerOne = millis();
-			}
-		}
-		if(!buttonStateOne)
-		{
-			// time on release
-			timerOne = millis();
-			Keyboard.release(CHAR_ONE);
-		}
+  // if single button press mode
+  if (mode)
+  {
+    // if one is debounced
+    if ((millis() - debounceTimerOne) > DELAY_DEBOUNCE)
+    {
+      // check if it has been pressed
+      if (buttonStateOne && !previousOne)
+      {
+        // the press function will press this button down and it will not be released
+        // unless explicitly told to
+        Keyboard.press(CHAR_ONE);
+        debounceTimerOne = millis();
+        //timerOne = millis();
+      }
+    }
+    if (!buttonStateOne)
+    {
+      // time on release
+      timerOne = millis();
+      Keyboard.release(CHAR_ONE);
+    }
 
-		// do animation for button one (left)
-		if (!buttonStateOne)
-		{
-			display.drawChar(TEXT_X_1, TEXT_Y_0, CHAR_ONE, WHITE, BLACK, 2);
-			display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_0, ART_WIDTH, ART_HEIGHT, WHITE);
-		}
-		else
-		{
-			int v = (millis() - timerOne);// / FRAME_DELAY_MS;
-			if (v <= FRAME_DELAY_MS * 1)
-			{
-				display.drawChar(TEXT_X_1, TEXT_Y_1, CHAR_ONE, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_1, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-			else if (v <= FRAME_DELAY_MS * 2)
-			{
-				display.drawChar(TEXT_X_1, TEXT_Y_2, CHAR_ONE, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_2, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-			else if (v <= FRAME_DELAY_MS * 3)
-			{
-				display.drawChar(TEXT_X_1, TEXT_Y_3, CHAR_ONE, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_3, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-			else
-			{
-				display.drawChar(TEXT_X_1, TEXT_Y_4, CHAR_ONE, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-		}
+    // do animation for button one (left)
+    if (!buttonStateOne)
+    {
+      display.drawChar(TEXT_X_1, TEXT_Y_0, CHAR_ONE, WHITE, BLACK, 2);
+      display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_0, ART_WIDTH, ART_HEIGHT, WHITE);
+    }
+    else
+    {
+      int v = (millis() - timerOne);// / FRAME_DELAY_MS;
+      if (v <= FRAME_DELAY_MS * 1)
+      {
+        display.drawChar(TEXT_X_1, TEXT_Y_1, CHAR_ONE, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_1, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+      else if (v <= FRAME_DELAY_MS * 2)
+      {
+        display.drawChar(TEXT_X_1, TEXT_Y_2, CHAR_ONE, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_2, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+      else if (v <= FRAME_DELAY_MS * 3)
+      {
+        display.drawChar(TEXT_X_1, TEXT_Y_3, CHAR_ONE, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_3, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+      else
+      {
+        display.drawChar(TEXT_X_1, TEXT_Y_4, CHAR_ONE, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_0, KEY_Y_0, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+    }
 
-		// handle stuff for button zero
+    // handle stuff for button zero
 
-		// if zero is debounced
-		if ((millis() - debounceTimerZero) > DELAY_DEBOUNCE)
-		{
-			// check if it has been pressed
-			if (buttonStateZero && !previousZero)
-			{
-				Keyboard.press(CHAR_ZERO);
-				debounceTimerZero = millis();
-			}
-		}
-		if (!buttonStateZero)
-		{
-			// time on release
-			timerZero = millis();
-			Keyboard.release(CHAR_ZERO);
-		}
+    // if zero is debounced
+    if ((millis() - debounceTimerZero) > DELAY_DEBOUNCE)
+    {
+      // check if it has been pressed
+      if (buttonStateZero && !previousZero)
+      {
+        Keyboard.press(CHAR_ZERO);
+        debounceTimerZero = millis();
+      }
+    }
+    if (!buttonStateZero)
+    {
+      // time on release
+      timerZero = millis();
+      Keyboard.release(CHAR_ZERO);
+    }
 
-		// do animation for button zero (right)
-		if (!buttonStateZero)
-		{
-			display.drawChar(TEXT_X_2, TEXT_Y_0, CHAR_ZERO, WHITE, BLACK, 2);
-			display.drawBitmap(KEY_X_1, KEY_Y_0, FRAME_0, ART_WIDTH, ART_HEIGHT, WHITE);
-		}
-		else
-		{
-			int v = (millis() - timerZero);// / FRAME_DELAY_MS;
-			if (v <= FRAME_DELAY_MS * 1)
-			{
-				display.drawChar(TEXT_X_2, TEXT_Y_1, CHAR_ZERO, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_1, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-			else if (v <= FRAME_DELAY_MS * 2)
-			{
-				display.drawChar(TEXT_X_2, TEXT_Y_2, CHAR_ZERO, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_2, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-			else if (v <= FRAME_DELAY_MS * 3)
-			{
-				display.drawChar(TEXT_X_2, TEXT_Y_3, CHAR_ZERO, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_3, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-			else
-			{
-				display.drawChar(TEXT_X_2, TEXT_Y_4, CHAR_ZERO, WHITE, BLACK, 2);
-				display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
-			}
-		}
-	}
-	else // in normal binary keyboard mode
-	{
-		// debouncing for each button
-		if ((millis() - debounceTimerZero) > DELAY_DEBOUNCE)
-		{
-			// zero pressed, and one is not pressed (otherwise this would cause issues with holding down both)
-			if (buttonStateZero && !buttonStateOne && !previousZero)
-			{
-				keypress(0);
-				debounceTimerZero = millis();
-			}
-		}
+    // do animation for button zero (right)
+    if (!buttonStateZero)
+    {
+      display.drawChar(TEXT_X_2, TEXT_Y_0, CHAR_ZERO, WHITE, BLACK, 2);
+      display.drawBitmap(KEY_X_1, KEY_Y_0, FRAME_0, ART_WIDTH, ART_HEIGHT, WHITE);
+    }
+    else
+    {
+      int v = (millis() - timerZero);// / FRAME_DELAY_MS;
+      if (v <= FRAME_DELAY_MS * 1)
+      {
+        display.drawChar(TEXT_X_2, TEXT_Y_1, CHAR_ZERO, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_1, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+      else if (v <= FRAME_DELAY_MS * 2)
+      {
+        display.drawChar(TEXT_X_2, TEXT_Y_2, CHAR_ZERO, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_2, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+      else if (v <= FRAME_DELAY_MS * 3)
+      {
+        display.drawChar(TEXT_X_2, TEXT_Y_3, CHAR_ZERO, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_3, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+      else
+      {
+        display.drawChar(TEXT_X_2, TEXT_Y_4, CHAR_ZERO, WHITE, BLACK, 2);
+        display.drawBitmap(KEY_X_1, KEY_Y_1, FRAME_4, ART_WIDTH, ART_HEIGHT, WHITE);
+      }
+    }
+  }
+  else // in normal binary keyboard mode
+  {
+    // debouncing for each button
+    if ((millis() - debounceTimerZero) > DELAY_DEBOUNCE)
+    {
+      // zero pressed, and one is not pressed (otherwise this would cause issues with holding down both)
+      if (buttonStateZero && !buttonStateOne && !previousZero)
+      {
+        keypress(0);
+        debounceTimerZero = millis();
+      }
+    }
 
-		if ((millis() - debounceTimerOne) > DELAY_DEBOUNCE)
-		{
-			// one pressed, and zero is not pressed
-			if (!buttonStateZero && buttonStateOne && !previousOne)
-			{
-				keypress(1);
-				debounceTimerOne = millis();
-			}
-		}
-	}
+    if ((millis() - debounceTimerOne) > DELAY_DEBOUNCE)
+    {
+      // one pressed, and zero is not pressed
+      if (!buttonStateZero && buttonStateOne && !previousOne)
+      {
+        keypress(1);
+        debounceTimerOne = millis();
+      }
+    }
+  }
 
-	// actually update the screen with these graphics
-	display.display();
+  // actually update the screen with these graphics
+  display.display();
 }
